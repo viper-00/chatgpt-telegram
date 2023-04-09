@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -23,7 +22,8 @@ type Conversation struct {
 }
 
 type ChatGPT struct {
-	SessionToken   string
+	Authorization string
+	// SessionToken   string
 	AccessTokenMap expirymap.ExpiryMap
 	mu             sync.Mutex // protects following
 	conversations  map[int64]Conversation
@@ -53,9 +53,10 @@ type ChatResponse struct {
 func Init(config *config.Config) *ChatGPT {
 	return &ChatGPT{
 		AccessTokenMap: expirymap.New(),
-		SessionToken:   config.OpenAISession,
-		mu:             sync.Mutex{},
-		conversations:  make(map[int64]Conversation),
+		// SessionToken:   config.OpenAISession,
+		Authorization: config.OpenAiAuthorization,
+		mu:            sync.Mutex{},
+		conversations: make(map[int64]Conversation),
 	}
 }
 
@@ -77,16 +78,16 @@ func (c *ChatGPT) ResetConversation(chatID int64) {
 }
 
 func (c *ChatGPT) SendMessage(message string, tgChatID int64) (chan ChatResponse, error) {
-	accessToken, err := c.refreshAccessToken()
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("Couldn't get access token: %v", err))
-	}
+	var err error
+	// accessToken, err := c.refreshAccessToken()
+	// if err != nil {
+	// 	return nil, errors.New(fmt.Sprintf("Couldn't get access token: %v", err))
+	// }
 
-	client := sse.Init("https://chat.openai.com/backend-api/conversation")
+	client := sse.Init("https://api.openai.com/v1/chat/completions")
 
 	client.Headers = map[string]string{
-		"User-Agent":    USER_AGENT,
-		"Authorization": fmt.Sprintf("Bearer %s", accessToken),
+		"Authorization": fmt.Sprintf("Bearer %s", c.Authorization),
 	}
 
 	c.mu.Lock() // lock the map to avoid data racing
@@ -109,23 +110,24 @@ func (c *ChatGPT) SendMessage(message string, tgChatID int64) (chan ChatResponse
 					return
 				}
 
-				var res MessageResponse
-				err := json.Unmarshal([]byte(chunk), &res)
-				if err != nil {
-					log.Printf("Couldn't unmarshal message response: %v", err)
-					continue
-				}
+				// var res MessageResponse
+				// err := json.Unmarshal([]byte(chunk), &res)
+				// if err != nil {
+				// 	log.Printf("Couldn't unmarshal message response: %v", err)
+				// 	continue
+				// }
 
-				if len(res.Message.Content.Parts) > 0 {
-					convo.ID = res.ConversationId
-					convo.LastMessageID = res.Message.ID
+				// if len(res.Message.Content.Parts) > 0 {
+				// 	convo.ID = res.ConversationId
+				// 	convo.LastMessageID = res.Message.ID
 
-					c.mu.Lock() // lock the map to avoid data racing
-					c.conversations[tgChatID] = convo
-					c.mu.Unlock()
+				// 	c.mu.Lock() // lock the map to avoid data racing
+				// 	c.conversations[tgChatID] = convo
+				// 	c.mu.Unlock()
 
-					r <- ChatResponse{Message: res.Message.Content.Parts[0]}
-				}
+				// 	r <- ChatResponse{Message: res.Message.Content.Parts[0]}
+				// }
+				r <- ChatResponse{Message: chunk}
 			}
 		}
 	}()
@@ -144,8 +146,10 @@ func (c *ChatGPT) refreshAccessToken() (string, error) {
 		return "", fmt.Errorf("failed to create request: %v", err)
 	}
 
-	req.Header.Set("User-Agent", USER_AGENT)
-	req.Header.Set("Cookie", fmt.Sprintf("__Secure-next-auth.session-token=%s", c.SessionToken))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+c.Authorization)
+	// req.Header.Set("User-Agent", USER_AGENT)
+	// req.Header.Set("Cookie", fmt.Sprintf("__Secure-next-auth.session-token=%s", c.SessionToken))
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {

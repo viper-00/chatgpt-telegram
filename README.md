@@ -2,19 +2,24 @@
 
 > Interact with ChatGPT
 
+English - [中文](./README_zh.md)
+
 Go CLI to fuels a Telegram bot that lets you interact with [ChatGPT](https://openai.com/blog/chatgpt/), a large language model trained by OpenAI.
 
 ## Installation
-Download the file corresponding to your OS in the [releases page](https://github.com/m1guelpf/chatgpt-telegram/releases/latest). 
-- `chatgpt-telegram-Darwin-amd64`: macOS (Intel)
-- `chatgpt-telegram-Darwin-arm64`: macOS (M1)
-- `chatgpt-telegram-Linux-amd64`: Linux
-- `chatgpt-telegram-Linux-arm64`: Linux (ARM)
-- `chatgpt-telegram-Win-amd64`: Windows
 
-After you download the file, extract it into a folder and open the `env.example` file with a text editor and fill in your credentials. 
-- `TELEGRAM_TOKEN`: Your Telegram Bot token
-  - Follow [this guide](https://core.telegram.org/bots/tutorial#obtain-your-bot-token) to create a bot and get the token.
+Clone the repository and navigate into the folder.
+
+```
+git clone https://github.com/viper-00/chatgpt-telegram.git
+
+cd chatgpt-telegram
+```
+
+Then, open the `env.example` file with a text editor and fill in your credentials, including:
+
+- `TELEGRAM_TOKEN`: Your Telegram Bot token.
+  - Follow [this guide](https://core.telegram.org/bots/tutorial#obtain-your-bot-token) to create a bot and obtain the token.
 - `TELEGRAM_ID` (Optional): Your Telegram User ID
   - If you set this, only you will be able to interact with the bot.
   - To get your ID, message `@userinfobot` on Telegram.
@@ -24,9 +29,20 @@ After you download the file, extract it into a folder and open the `env.example`
 - Save the file, and rename it to `.env`.
 > **Note** Make sure you rename the file to _exactly_ `.env`! The program won't work otherwise.
 
-Finally, open the terminal in your computer (if you're on windows, look for `PowerShell`), navigate to the path you extracted the above file (you can use `cd dirname` to navigate to a directory, ask ChatGPT if you need more assistance 😉) and run `./chatgpt-telegram`.
+Finally, open the terminal in your computer (if you're on Windows, look for `PowerShell`), navigate to the directory where you saved the above file using the "cd" command, and run:
 
-### Running with Docker
+```
+go run main.go -c chatgpt.json
+```
+
+or build and run:
+
+```
+go build -o chatgpt-telegram
+./chatgpt-telegram -c chatgpt.json
+```
+
+<!-- ### Running with Docker
 
 If you're trying to run this on a server with an existing Docker setup, you might want to use our Docker image instead.
 
@@ -49,23 +65,21 @@ services:
       - TELEGRAM_TOKEN=
 ```
 
-> **Note** The docker setup is optimized for the Browserless authentication mechanism, described below. Make sure you update the `.config/chatgpt.json` file in this repo with your session token before running.
+> **Note** The docker setup is optimized for the Browserless authentication mechanism, described below. Make sure you update the `.config/chatgpt.json` file in this repo with your session token before running. -->
 
 ## Authentication
 
-By default, the program will launch a browser for you to sign into your account, and close it once you're signed in. If this setup doesn't work for you (there are issues with the browser starting, you want to run this in a computer with no screen, etc.), you can manually extract your session from your browser instead.
+The program use an `API key` to authenticate your ChatGPT account information, so you need to generate a unique key on the offcial ChatGPT site in order to bind your account.
 
-To do this, first sign in to ChatGPT on your browser, then open the Developer Tools (right click anywhere in the page, then click "Inspect"), click on the Application tab and then on the Cookies section, and copy the value of the `__Secure-next-auth.session-token` cookie.
+> **Note** If you are not familiar with ChatGPT API keys, you can check the [official site](https://platform.openai.com/account/api-keys) for more information.
 
-You will then have to create a config file in the following location depending on your OS (replace `YOUR_USERNAME_HERE` with your username:
+After you enter the folder, open the `chatgpt.json.example` file with a text editor and replace the 'your_chatgpt_api_key' text with your generated API key:
 
-- `~/.config/chatgpt.json`: Linux
-- `C:\Users\YOUR_USERNAME_HERE\AppData\Roaming\chatgpt.json`: Windows
-- `/Users/YOUR_USERNAME_HERE/Library/Application Support/chatgpt.json`: macOS
+```
+{ "openaiauthorization": "your_chatgpt_api_key" }
+```
 
-> **Note** If you have already run the program, the file should exist but be empty. If it doesn't exist yet, you can either run the program or manually create it.
-
-Finally, add your cookie to the file and save it. It should look like this: `{ "openaisession": "YOUR_COOKIE_HERE" }`.
+Save the file and rename it to `chatgpt.json`.
 
 ## License
 
